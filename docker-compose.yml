@@ -1,0 +1,106 @@
+# docker-compose.yml
+services:
+
+  # ── PostgreSQL Standalone ─────────────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    container_name: postgres_standalone
+    environment:
+      POSTGRES_DB: foursquaredb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # ── Citus Coordinator (Distributed PostgreSQL) ────────────────────────────
+  citus_coordinator:
+    image: citusdata/citus:12.1
+    container_name: citus_coordinator
+    environment:
+      POSTGRES_DB: foursquaredb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5433:5432"
+    shm_size: '1gb'
+    volumes:
+      - citus_coord_data:/var/lib/postgresql/data
+
+  citus_worker1:
+    image: citusdata/citus:12.1
+    container_name: citus_worker1
+    environment:
+      POSTGRES_DB: foursquaredb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    shm_size: '1gb'
+    volumes:
+      - citus_w1_data:/var/lib/postgresql/data
+
+  citus_worker2:
+    image: citusdata/citus:12.1
+    container_name: citus_worker2
+    environment:
+      POSTGRES_DB: foursquaredb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    shm_size: '1gb'
+    volumes:
+      - citus_w2_data:/var/lib/postgresql/data
+
+  # ── ScyllaDB Cluster ──────────────────────────────────────────────────────
+  scylla1:
+    image: scylladb/scylla:5.4
+    container_name: scylla1
+    ports:
+      - "9042:9042"
+    command: --seeds=scylla1 --smp 2 --memory 2G --overprovisioned 1 --api-address 0.0.0.0
+
+  scylla2:
+    image: scylladb/scylla:5.4
+    container_name: scylla2
+    command: --seeds=scylla1 --smp 2 --memory 2G --overprovisioned 1 --api-address 0.0.0.0
+    depends_on:
+      - scylla1
+
+  scylla3:
+    image: scylladb/scylla:5.4
+    container_name: scylla3
+    command: --seeds=scylla1 --smp 2 --memory 2G --overprovisioned 1 --api-address 0.0.0.0
+    depends_on:
+      - scylla1
+
+  # ── MongoDB Replica Set ───────────────────────────────────────────────────
+  mongo1:
+    image: mongo:7.0
+    container_name: mongo1
+    ports:
+      - "27017:27017"
+    command: mongod --bind_ip_all
+    volumes:
+      - mongo1_data:/data/db
+
+  mongo2:
+    image: mongo:7.0
+    container_name: mongo2
+    command: mongod --bind_ip_all
+    volumes:
+      - mongo2_data:/data/db
+
+  mongo3:
+    image: mongo:7.0
+    container_name: mongo3
+    command: mongod --bind_ip_all
+    volumes:
+      - mongo3_data:/data/db
+
+volumes:
+  postgres_data:
+  citus_coord_data:
+  citus_w1_data:
+  citus_w2_data:
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:

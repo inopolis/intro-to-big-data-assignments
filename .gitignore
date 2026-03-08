@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+data/
+scylla_checkpoint.txt
+pg_backup.sql
